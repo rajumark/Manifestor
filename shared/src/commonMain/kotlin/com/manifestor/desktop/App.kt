@@ -47,9 +47,14 @@ fun App(
     sourceCodeEntries: List<FileEntry> = emptyList(),
     sourceCodeCurrentPath: String = "",
     sourceCodeSelectedFile: String? = null,
+    sourceCodeFileContent: String = "",
     onSourceCodeNavigate: (String) -> Unit = {},
     onSourceCodeBack: () -> Unit = {},
     onSourceCodeFileClick: (String) -> Unit = {},
+    onSourceCodeDownload: () -> Unit = {},
+    onSourceCodeCopy: () -> Unit = {},
+    onSourceCodeSearchFile: (String) -> Unit = {},
+    onSourceCodeSearchContent: (String) -> Unit = {},
 ) {
     val isDark = when (themeOption) {
         ThemeOption.DARK -> true
@@ -102,9 +107,14 @@ fun App(
                         sourceCodeEntries = sourceCodeEntries,
                         sourceCodeCurrentPath = sourceCodeCurrentPath,
                         sourceCodeSelectedFile = sourceCodeSelectedFile,
+                        sourceCodeFileContent = sourceCodeFileContent,
                         onSourceCodeNavigate = onSourceCodeNavigate,
                         onSourceCodeBack = onSourceCodeBack,
                         onSourceCodeFileClick = onSourceCodeFileClick,
+                        onSourceCodeDownload = onSourceCodeDownload,
+                        onSourceCodeCopy = onSourceCodeCopy,
+                        onSourceCodeSearchFile = onSourceCodeSearchFile,
+                        onSourceCodeSearchContent = onSourceCodeSearchContent,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

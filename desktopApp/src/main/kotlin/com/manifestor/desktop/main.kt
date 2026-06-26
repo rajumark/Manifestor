@@ -51,6 +51,14 @@ fun main() = application {
     var sourceCodeEntries by remember { mutableStateOf<List<FileEntry>>(emptyList()) }
     var sourceCodeCurrentPath by remember { mutableStateOf("") }
     var sourceCodeSelectedFile by remember { mutableStateOf<String?>(null) }
+    var sourceCodeFileContent by remember { mutableStateOf("") }
+
+    fun readSourceCodeFile(projectDir: String, relativePath: String): String {
+        val file = File(File(projectDir, "jadx_result"), relativePath)
+        return if (file.exists() && file.isFile) {
+            try { file.readText() } catch (_: Exception) { "Unable to read file" }
+        } else ""
+    }
 
     fun loadSourceCodeEntries(projectDir: String, relativePath: String) {
         val baseDir = File(File(projectDir, "jadx_result"), relativePath)
@@ -232,9 +240,43 @@ fun main() = application {
                     sourceCodeSelectedFile = null
                     loadSourceCodeEntries(projectDir, parent)
                 },
+                sourceCodeFileContent = sourceCodeFileContent,
                 onSourceCodeFileClick = { path ->
                     sourceCodeSelectedFile = path
+                    val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                    sourceCodeFileContent = readSourceCodeFile(projectDir, path)
                 },
+                onSourceCodeDownload = {
+                    val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                    val path = sourceCodeSelectedFile ?: return@App
+                    val srcFile = File(File(projectDir, "jadx_result"), path)
+                    if (!srcFile.exists()) return@App
+                    val home = System.getProperty("user.home")
+                    val downloadsDir = if (System.getProperty("os.name").startsWith("Windows"))
+                        "${System.getenv("USERPROFILE")}\\Downloads"
+                    else "$home/Downloads"
+                    val destDir = File(downloadsDir)
+                    if (!destDir.exists()) destDir.mkdirs()
+                    var destFile = File(destDir, srcFile.name)
+                    var counter = 1
+                    while (destFile.exists()) {
+                        val name = srcFile.nameWithoutExtension
+                        val ext = srcFile.extension
+                        destFile = File(destDir, "${name}($counter).$ext")
+                        counter++
+                    }
+                    srcFile.copyTo(destFile, overwrite = false)
+                },
+                onSourceCodeCopy = {
+                    sourceCodeSelectedFile?.let { path ->
+                        val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                        val content = readSourceCodeFile(projectDir, path)
+                        val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
+                        clipboard.setContents(java.awt.datatransfer.StringSelection(content), null)
+                    }
+                },
+                onSourceCodeSearchFile = { /* handled locally in SourceCodePage */ },
+                onSourceCodeSearchContent = { /* handled locally in SourceCodePage */ },
                 projects = projects,
                 onProjectClick = { project ->
                     projectInfo = ProjectInfo(

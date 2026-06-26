@@ -52,9 +52,14 @@ fun HomeScreen(
     sourceCodeEntries: List<FileEntry> = emptyList(),
     sourceCodeCurrentPath: String = "",
     sourceCodeSelectedFile: String? = null,
+    sourceCodeFileContent: String = "",
     onSourceCodeNavigate: (String) -> Unit = {},
     onSourceCodeBack: () -> Unit = {},
     onSourceCodeFileClick: (String) -> Unit = {},
+    onSourceCodeDownload: () -> Unit = {},
+    onSourceCodeCopy: () -> Unit = {},
+    onSourceCodeSearchFile: (String) -> Unit = {},
+    onSourceCodeSearchContent: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -195,9 +200,14 @@ fun HomeScreen(
                                 currentPath = sourceCodeCurrentPath,
                                 canGoBack = sourceCodeCurrentPath.isNotEmpty(),
                                 selectedFile = sourceCodeSelectedFile,
+                                fileContent = sourceCodeFileContent,
                                 onNavigate = onSourceCodeNavigate,
                                 onBack = onSourceCodeBack,
                                 onFileClick = onSourceCodeFileClick,
+                                onDownload = onSourceCodeDownload,
+                                onCopy = onSourceCodeCopy,
+                                onSearchFile = onSourceCodeSearchFile,
+                                onSearchContent = onSourceCodeSearchContent,
                             )
                         }
                     }
