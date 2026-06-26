@@ -2,7 +2,6 @@ package com.manifestor.desktop.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,7 +13,6 @@ import com.manifestor.desktop.ProjectInfo
 @Composable
 fun HomeScreen(
     projectInfo: ProjectInfo,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -50,10 +48,6 @@ fun HomeScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(32.dp))
-            Button(onClick = onBack) {
-                Text("Back")
-            }
         }
     }
 }

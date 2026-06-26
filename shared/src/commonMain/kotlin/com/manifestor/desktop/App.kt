@@ -61,7 +61,6 @@ fun App(
                 if (projectInfo != null) {
                     HomeScreen(
                         projectInfo = projectInfo,
-                        onBack = onNavigateWelcome,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
