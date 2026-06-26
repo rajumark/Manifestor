@@ -89,6 +89,7 @@ fun App(
                         decompileProgress = decompileProgress,
                         decompileStatusText = decompileStatusText,
                         onRetryDecompile = onRetryDecompile,
+                        onSettingsClick = onSettingsClick,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
