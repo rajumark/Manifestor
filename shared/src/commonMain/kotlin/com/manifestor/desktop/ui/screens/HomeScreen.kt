@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.manifestor.desktop.AppIcons
+import com.manifestor.desktop.FileEntry
 import com.manifestor.desktop.ProjectInfo
 import com.manifestor.desktop.ui.screens.pages.ManifestPage
 import com.manifestor.desktop.ui.screens.pages.OverviewPage
@@ -48,6 +49,12 @@ fun HomeScreen(
     onRetryDecompile: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
+    sourceCodeEntries: List<FileEntry> = emptyList(),
+    sourceCodeCurrentPath: String = "",
+    sourceCodeSelectedFile: String? = null,
+    onSourceCodeNavigate: (String) -> Unit = {},
+    onSourceCodeBack: () -> Unit = {},
+    onSourceCodeFileClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -183,7 +190,15 @@ fun HomeScreen(
                         when (selectedPage) {
                             SidebarPage.OVERVIEW -> OverviewPage(projectInfo = projectInfo)
                             SidebarPage.MANIFEST -> ManifestPage()
-                            SidebarPage.SOURCE_CODE -> SourceCodePage()
+                            SidebarPage.SOURCE_CODE -> SourceCodePage(
+                                entries = sourceCodeEntries,
+                                currentPath = sourceCodeCurrentPath,
+                                canGoBack = sourceCodeCurrentPath.isNotEmpty(),
+                                selectedFile = sourceCodeSelectedFile,
+                                onNavigate = onSourceCodeNavigate,
+                                onBack = onSourceCodeBack,
+                                onFileClick = onSourceCodeFileClick,
+                            )
                         }
                     }
                 }

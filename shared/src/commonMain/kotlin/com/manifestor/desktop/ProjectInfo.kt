@@ -17,6 +17,12 @@ data class ProjectSummary(
     val jadxDone: Boolean = false,
 )
 
+data class FileEntry(
+    val name: String,
+    val isDirectory: Boolean,
+    val relativePath: String,
+)
+
 enum class Screen {
     TOOL_SETUP, WELCOME, HOME,
 }

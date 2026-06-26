@@ -48,6 +48,34 @@ fun main() = application {
     var decompileRetryTrigger by remember { mutableStateOf(0) }
     var decompileProgress by remember { mutableStateOf(0f) }
     var decompileStatusText by remember { mutableStateOf("") }
+    var sourceCodeEntries by remember { mutableStateOf<List<FileEntry>>(emptyList()) }
+    var sourceCodeCurrentPath by remember { mutableStateOf("") }
+    var sourceCodeSelectedFile by remember { mutableStateOf<String?>(null) }
+
+    fun loadSourceCodeEntries(projectDir: String, relativePath: String) {
+        val baseDir = File(File(projectDir, "jadx_result"), relativePath)
+        if (!baseDir.exists()) {
+            sourceCodeEntries = emptyList()
+            return
+        }
+        sourceCodeEntries = baseDir.listFiles()?.map { file ->
+            FileEntry(
+                name = file.name,
+                isDirectory = file.isDirectory,
+                relativePath = if (relativePath.isEmpty()) file.name else "$relativePath/${file.name}",
+            )
+        }?.sortedWith(compareByDescending<FileEntry> { it.isDirectory }.thenBy { it.name })
+            ?: emptyList()
+    }
+
+    LaunchedEffect(projectInfo) {
+        if (projectInfo != null) {
+            val projectDir = "${projectsDir}/${projectInfo!!.projectName}"
+            loadSourceCodeEntries(projectDir, "")
+            sourceCodeCurrentPath = ""
+            sourceCodeSelectedFile = null
+        }
+    }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -187,6 +215,26 @@ fun main() = application {
                 decompileProgress = decompileProgress,
                 decompileStatusText = decompileStatusText,
                 onRetryDecompile = { decompileRetryTrigger++ },
+                sourceCodeEntries = sourceCodeEntries,
+                sourceCodeCurrentPath = sourceCodeCurrentPath,
+                sourceCodeSelectedFile = sourceCodeSelectedFile,
+                onSourceCodeNavigate = { path ->
+                    val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                    sourceCodeCurrentPath = path
+                    sourceCodeSelectedFile = null
+                    loadSourceCodeEntries(projectDir, path)
+                },
+                onSourceCodeBack = {
+                    val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                    val parts = sourceCodeCurrentPath.split("/")
+                    val parent = parts.dropLast(1).joinToString("/")
+                    sourceCodeCurrentPath = parent
+                    sourceCodeSelectedFile = null
+                    loadSourceCodeEntries(projectDir, parent)
+                },
+                onSourceCodeFileClick = { path ->
+                    sourceCodeSelectedFile = path
+                },
                 projects = projects,
                 onProjectClick = { project ->
                     projectInfo = ProjectInfo(

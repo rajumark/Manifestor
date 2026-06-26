@@ -44,6 +44,12 @@ fun App(
     onRetryDecompile: () -> Unit = {},
     projects: List<ProjectSummary> = emptyList(),
     onProjectClick: (ProjectSummary) -> Unit = {},
+    sourceCodeEntries: List<FileEntry> = emptyList(),
+    sourceCodeCurrentPath: String = "",
+    sourceCodeSelectedFile: String? = null,
+    onSourceCodeNavigate: (String) -> Unit = {},
+    onSourceCodeBack: () -> Unit = {},
+    onSourceCodeFileClick: (String) -> Unit = {},
 ) {
     val isDark = when (themeOption) {
         ThemeOption.DARK -> true
@@ -93,6 +99,12 @@ fun App(
                         onRetryDecompile = onRetryDecompile,
                         onSettingsClick = onSettingsClick,
                         onTitleClick = onNavigateWelcome,
+                        sourceCodeEntries = sourceCodeEntries,
+                        sourceCodeCurrentPath = sourceCodeCurrentPath,
+                        sourceCodeSelectedFile = sourceCodeSelectedFile,
+                        onSourceCodeNavigate = onSourceCodeNavigate,
+                        onSourceCodeBack = onSourceCodeBack,
+                        onSourceCodeFileClick = onSourceCodeFileClick,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
