@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,7 +20,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.manifestor.desktop.AppIcons
 import com.manifestor.desktop.ProjectSummary
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun WelcomeScreen(
@@ -197,10 +200,10 @@ fun WelcomeScreen(
             onClick = onSettingsClick,
             modifier = Modifier.align(Alignment.TopEnd).padding(24.dp),
         ) {
-            Text(
-                text = "\u2699",
-                style = MaterialTheme.typography.titleLarge,
-                color = scheme.onSurfaceVariant,
+            Icon(
+                painter = painterResource(AppIcons.settings),
+                contentDescription = "Settings",
+                tint = scheme.onSurfaceVariant,
             )
         }
     }
