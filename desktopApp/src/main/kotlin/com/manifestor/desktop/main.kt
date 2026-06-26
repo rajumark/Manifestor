@@ -43,6 +43,11 @@ fun main() = application {
     var showSettings by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val projects = remember(currentScreen) { loadProjects() }
+    var isDecompiling by remember { mutableStateOf(false) }
+    var decompileError by remember { mutableStateOf<String?>(null) }
+    var decompileRetryTrigger by remember { mutableStateOf(0) }
+    var decompileProgress by remember { mutableStateOf(0f) }
+    var decompileStatusText by remember { mutableStateOf("") }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -91,6 +96,29 @@ fun main() = application {
                 .fillMaxSize()
                 .then(FileDropNodeElement(shouldStart, target))
         ) {
+            LaunchedEffect(currentScreen, projectInfo, decompileRetryTrigger) {
+                val info = projectInfo
+                if (currentScreen == Screen.HOME && info != null && !info.jadxDone && !isDecompiling) {
+                    isDecompiling = true
+                    decompileError = null
+                    decompileProgress = 0f
+                    decompileStatusText = ""
+                    val projectDir = File(projectsDir, info.projectName)
+                    val apkFile = File(projectDir, info.apkFileName)
+                    val outputDir = File(projectDir, "jadx_result").absolutePath
+                    val error = ToolManager.decompileApk(apkFile.absolutePath, outputDir) { progress, text ->
+                        decompileProgress = progress
+                        decompileStatusText = text
+                    }
+                    if (error != null) {
+                        decompileError = error
+                    } else {
+                        updateProjectJadxDone(info.projectName, true)
+                        projectInfo = info.copy(jadxDone = true)
+                    }
+                    isDecompiling = false
+                }
+            }
             App(
                 screen = currentScreen,
                 apkPath = apkPath,
@@ -107,6 +135,7 @@ fun main() = application {
                             apkFileName = File(normalizePath(apkPath ?: "")).name,
                             apkFullPath = normalizePath(apkPath ?: ""),
                             createdAt = java.time.LocalDateTime.now().toString(),
+                            jadxDone = false,
                         )
                         currentScreen = Screen.HOME
                         projectName = ""
@@ -153,6 +182,11 @@ fun main() = application {
                         }
                     }
                 },
+                isDecompiling = isDecompiling,
+                decompileError = decompileError,
+                decompileProgress = decompileProgress,
+                decompileStatusText = decompileStatusText,
+                onRetryDecompile = { decompileRetryTrigger++ },
                 projects = projects,
                 onProjectClick = { project ->
                     projectInfo = ProjectInfo(
@@ -160,6 +194,7 @@ fun main() = application {
                         apkFileName = project.apkFileName,
                         apkFullPath = project.apkFullPath,
                         createdAt = project.createdAt,
+                        jadxDone = project.jadxDone,
                     )
                     currentScreen = Screen.HOME
                 },
@@ -235,7 +270,8 @@ private fun createProject(apkPath: String?, projectName: String): String? {
         appendLine("  \"projectName\": \"$name\",")
         appendLine("  \"apkFileName\": \"${apkFile.name}\",")
         appendLine("  \"apkFullPath\": \"${apkFile.absolutePath}\",")
-        appendLine("  \"createdAt\": \"${java.time.LocalDateTime.now()}\"")
+        appendLine("  \"createdAt\": \"${java.time.LocalDateTime.now()}\",")
+        appendLine("  \"jadxDone\": false")
         appendLine("}")
     }
     File(projectDir, "project.json").writeText(metadata)
@@ -255,10 +291,12 @@ private fun loadProjects(): List<ProjectSummary> {
             val apkFileName = extractJsonString(json, "apkFileName") ?: ""
             val apkFullPath = extractJsonString(json, "apkFullPath") ?: ""
             val createdAt = extractJsonString(json, "createdAt") ?: ""
+            val jadxDone = extractJsonBool(json, "jadxDone") ?: false
             ProjectSummary(
                 projectName = name, apkFileName = apkFileName,
                 apkFullPath = apkFullPath, createdAt = createdAt,
                 createdAtDisplay = daysAgoText(createdAt),
+                jadxDone = jadxDone,
             )
         } catch (_: Exception) { null }
     }?.sortedByDescending { it.createdAt } ?: emptyList()
@@ -281,6 +319,25 @@ private fun daysAgoText(createdAt: String): String {
             else -> "$days days ago"
         }
     } catch (_: Exception) { createdAt }
+}
+
+private fun extractJsonBool(json: String, key: String): Boolean? {
+    val regex = "\"$key\"\\s*:\\s*(true|false)".toRegex()
+    return regex.find(json)?.groupValues?.get(1)?.toBooleanStrictOrNull()
+}
+
+private fun updateProjectJadxDone(projectName: String, done: Boolean) {
+    val jsonFile = File(File(projectsDir, projectName), "project.json")
+    if (!jsonFile.exists()) return
+    try {
+        val json = jsonFile.readText()
+        val updated = if ("\"jadxDone\"" in json) {
+            json.replace(Regex("\"jadxDone\"\\s*:\\s*(true|false)"), "\"jadxDone\": $done")
+        } else {
+            json.trimEnd().trimEnd('}') + ",\n  \"jadxDone\": $done\n}\n"
+        }
+        jsonFile.writeText(updated)
+    } catch (_: Exception) {}
 }
 
 private class FileDropNodeElement(

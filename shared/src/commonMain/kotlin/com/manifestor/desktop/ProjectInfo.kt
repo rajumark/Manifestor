@@ -5,6 +5,7 @@ data class ProjectInfo(
     val apkFileName: String,
     val apkFullPath: String,
     val createdAt: String,
+    val jadxDone: Boolean = false,
 )
 
 data class ProjectSummary(
@@ -13,6 +14,7 @@ data class ProjectSummary(
     val apkFullPath: String,
     val createdAt: String,
     val createdAtDisplay: String,
+    val jadxDone: Boolean = false,
 )
 
 enum class Screen {

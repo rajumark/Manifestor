@@ -78,4 +78,47 @@ object ToolManager {
         File(toolsDir, "donejadx.txt").writeText("done")
         onProgress(1f)
     }
+
+    suspend fun decompileApk(apkPath: String, outputDir: String, onProgress: (Float, String) -> Unit): String? = withContext(Dispatchers.IO) {
+        val jadxBin = File(File(toolsDir, "bin"), "jadx")
+        if (!jadxBin.exists()) return@withContext "jadx CLI script not found at $jadxBin"
+        if (!jadxBin.canExecute()) jadxBin.setExecutable(true)
+
+        File(outputDir).mkdirs()
+
+        val process = ProcessBuilder(
+            jadxBin.absolutePath,
+            "-d", outputDir,
+            "-j", "4",
+            "--show-bad-code",
+            apkPath,
+        ).redirectErrorStream(true).start()
+
+        val output = process.inputStream.bufferedReader().useLines { lines ->
+            lines.mapNotNull { line ->
+                val match = Regex("progress: (-?\\d+) of (-?\\d+) \\((\\d+)%\\)").find(line)
+                if (match != null) {
+                    val curr = match.groupValues[1].toIntOrNull() ?: 0
+                    val total = match.groupValues[2].toIntOrNull() ?: 1
+                    val pct = match.groupValues[3].toIntOrNull() ?: 0
+                    onProgress(pct.toFloat() / 100f, "$curr of $total ($pct%)")
+                }
+                line
+            }.toList().joinToString("\n")
+        }
+
+        val exitCode = process.waitFor()
+
+        if (exitCode == 3) {
+            val errCount = Regex("finished with errors, count: (-?\\d+)").find(output)?.groupValues?.get(1)
+            val summary = if (errCount != null) "Decompiled with $errCount errors" else "Decompiled with errors"
+            onProgress(1f, summary)
+        }
+
+        if (exitCode != 0 && exitCode != 3) {
+            "jadx failed (exit $exitCode):\n$output"
+        } else if (!File(outputDir, "sources").exists()) {
+            "jadx produced no output"
+        } else null
+    }
 }

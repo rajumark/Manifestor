@@ -37,6 +37,11 @@ fun App(
     downloadProgress: Float = 0f,
     toolSetupError: String? = null,
     onToolDownload: () -> Unit = {},
+    isDecompiling: Boolean = false,
+    decompileError: String? = null,
+    decompileProgress: Float = 0f,
+    decompileStatusText: String = "",
+    onRetryDecompile: () -> Unit = {},
     projects: List<ProjectSummary> = emptyList(),
     onProjectClick: (ProjectSummary) -> Unit = {},
 ) {
@@ -79,6 +84,11 @@ fun App(
                 if (projectInfo != null) {
                     HomeScreen(
                         projectInfo = projectInfo,
+                        isDecompiling = isDecompiling,
+                        decompileError = decompileError,
+                        decompileProgress = decompileProgress,
+                        decompileStatusText = decompileStatusText,
+                        onRetryDecompile = onRetryDecompile,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
