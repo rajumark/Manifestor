@@ -99,6 +99,19 @@ fun main() = application {
     }
 }
 
+private val appDataDir: String by lazy {
+    val os = System.getProperty("os.name")
+    val home = System.getProperty("user.home")
+    when {
+        os.startsWith("Windows") -> "${System.getenv("APPDATA")}\\Manifestor"
+        os == "Mac OS X" -> "$home/Library/Application Support/Manifestor"
+        else -> {
+            val xdg = System.getenv("XDG_DATA_HOME") ?: "$home/.local/share"
+            "$xdg/Manifestor"
+        }
+    }
+}
+
 private fun createProject(apkPath: String?, projectName: String): String? {
     if (apkPath == null) return null
 
@@ -106,8 +119,7 @@ private fun createProject(apkPath: String?, projectName: String): String? {
     if (name.isEmpty()) return "Project name cannot be empty"
     if (!name.first().isLetter()) return "Project name must start with a letter"
 
-    val projectsDir = File(System.getProperty("user.home"), "ManifestorProjects")
-    val projectDir = File(projectsDir, name)
+    val projectDir = File(appDataDir, name)
 
     if (projectDir.exists()) return "Project '$name' already exists"
 
