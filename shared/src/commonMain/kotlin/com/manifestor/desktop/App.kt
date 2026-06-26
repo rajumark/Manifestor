@@ -10,11 +10,13 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.manifestor.desktop.ui.screens.HomeScreen
 import com.manifestor.desktop.ui.screens.WelcomeScreen
 import com.manifestor.desktop.ui.theme.ThemeOption
 
 @Composable
 fun App(
+    screen: Screen = Screen.WELCOME,
     apkPath: String? = null,
     isDragging: Boolean = false,
     projectName: String = "",
@@ -27,6 +29,9 @@ fun App(
     onSettingsClick: () -> Unit = {},
     onBrowseClick: () -> Unit = {},
     onClearApk: () -> Unit = {},
+    projectInfo: ProjectInfo? = null,
+    onNavigateHome: () -> Unit = {},
+    onNavigateWelcome: () -> Unit = {},
 ) {
     val isDark = when (themeOption) {
         ThemeOption.DARK -> true
@@ -37,18 +42,31 @@ fun App(
     MaterialTheme(
         colorScheme = if (isDark) darkColorScheme() else lightColorScheme(),
     ) {
-        WelcomeScreen(
-            modifier = Modifier.fillMaxSize(),
-            apkPath = apkPath,
-            isDragging = isDragging,
-            projectName = projectName,
-            onProjectNameChange = onProjectNameChange,
-            onCreateProject = onCreateProject,
-            errorMessage = errorMessage,
-            onSettingsClick = onSettingsClick,
-            onBrowseClick = onBrowseClick,
-            onClearApk = onClearApk,
-        )
+        when (screen) {
+            Screen.WELCOME -> {
+                WelcomeScreen(
+                    modifier = Modifier.fillMaxSize(),
+                    apkPath = apkPath,
+                    isDragging = isDragging,
+                    projectName = projectName,
+                    onProjectNameChange = onProjectNameChange,
+                    onCreateProject = onCreateProject,
+                    errorMessage = errorMessage,
+                    onSettingsClick = onSettingsClick,
+                    onBrowseClick = onBrowseClick,
+                    onClearApk = onClearApk,
+                )
+            }
+            Screen.HOME -> {
+                if (projectInfo != null) {
+                    HomeScreen(
+                        projectInfo = projectInfo,
+                        onBack = onNavigateWelcome,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
 
         if (errorDialogMessage != null) {
             AlertDialog(

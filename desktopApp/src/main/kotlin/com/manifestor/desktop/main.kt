@@ -26,6 +26,8 @@ import java.util.prefs.Preferences
 private val prefs = Preferences.userRoot().node("com/manifestor/desktop")
 
 fun main() = application {
+    var currentScreen by remember { mutableStateOf(Screen.WELCOME) }
+    var projectInfo by remember { mutableStateOf<ProjectInfo?>(null) }
     var apkPath by remember { mutableStateOf<String?>(null) }
     val isDragging = remember { mutableStateOf(false) }
     var projectName by remember { mutableStateOf("") }
@@ -82,6 +84,7 @@ fun main() = application {
                 .then(FileDropNodeElement(shouldStart, target))
         ) {
             App(
+                screen = currentScreen,
                 apkPath = apkPath,
                 isDragging = isDragging.value,
                 projectName = projectName,
@@ -91,6 +94,13 @@ fun main() = application {
                     if (error != null) {
                         if (error.contains("\n")) errorDialogMessage = error else errorMessage = error
                     } else {
+                        projectInfo = ProjectInfo(
+                            projectName = projectName.trim(),
+                            apkFileName = File(normalizePath(apkPath ?: "")).name,
+                            apkFullPath = normalizePath(apkPath ?: ""),
+                            createdAt = java.time.LocalDateTime.now().toString(),
+                        )
+                        currentScreen = Screen.HOME
                         projectName = ""
                     }
                 },
@@ -110,6 +120,9 @@ fun main() = application {
                     }
                 },
                 onClearApk = { apkPath = null; projectName = ""; errorMessage = null },
+                projectInfo = projectInfo,
+                onNavigateHome = { currentScreen = Screen.HOME },
+                onNavigateWelcome = { currentScreen = Screen.WELCOME },
             )
 
             if (showSettings) {
