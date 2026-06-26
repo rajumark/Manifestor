@@ -6,24 +6,23 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.manifestor.desktop.ui.screens.WelcomeScreen
-import com.manifestor.desktop.ui.theme.AppColors
-import com.manifestor.desktop.ui.theme.AppTypography
 
 @Composable
-fun App() {
+fun App(
+    apkPath: String? = null,
+    isDragging: Boolean = false,
+    onBrowseClick: () -> Unit = {},
+    onClearApk: () -> Unit = {},
+) {
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = AppColors.accent,
-            surface = AppColors.surface,
-            background = AppColors.background,
-            onPrimary = AppColors.textPrimary,
-            onSurface = AppColors.textPrimary,
-            onBackground = AppColors.textPrimary,
-        ),
-        typography = AppTypography.typography,
+        colorScheme = darkColorScheme(),
     ) {
         WelcomeScreen(
             modifier = Modifier.fillMaxSize(),
+            apkPath = apkPath,
+            isDragging = isDragging,
+            onBrowseClick = onBrowseClick,
+            onClearApk = onClearApk,
         )
     }
 }
