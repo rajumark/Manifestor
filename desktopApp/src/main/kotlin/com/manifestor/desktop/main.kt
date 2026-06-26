@@ -16,15 +16,22 @@ import androidx.compose.ui.draganddrop.dragData
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.manifestor.desktop.ui.components.SettingsDialog
+import com.manifestor.desktop.ui.theme.ThemeOption
 import java.awt.FileDialog
 import java.io.File
 import java.io.FilenameFilter
+import java.util.prefs.Preferences
+
+private val prefs = Preferences.userRoot().node("com/manifestor/desktop")
 
 fun main() = application {
     var apkPath by remember { mutableStateOf<String?>(null) }
     val isDragging = remember { mutableStateOf(false) }
     var projectName by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var themeOption by remember { mutableStateOf(savedTheme()) }
+    var showSettings by remember { mutableStateOf(false) }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -83,6 +90,8 @@ fun main() = application {
                     if (error != null) errorMessage = error else projectName = ""
                 },
                 errorMessage = errorMessage,
+                themeOption = themeOption,
+                onSettingsClick = { showSettings = true },
                 onBrowseClick = {
                     val dialog = FileDialog(window, "Select APK", FileDialog.LOAD)
                     dialog.filenameFilter = FilenameFilter { _, name -> name.lowercase().endsWith(".apk") }
@@ -95,9 +104,25 @@ fun main() = application {
                 },
                 onClearApk = { apkPath = null; projectName = ""; errorMessage = null },
             )
+
+            if (showSettings) {
+                SettingsDialog(
+                    themeOption = themeOption,
+                    onThemeChange = { option ->
+                        themeOption = option
+                        saveTheme(option)
+                    },
+                    onDismiss = { showSettings = false },
+                )
+            }
         }
     }
 }
+
+private fun savedTheme(): ThemeOption =
+    try { ThemeOption.valueOf(prefs.get("theme", "DARK")) } catch (_: Exception) { ThemeOption.DARK }
+
+private fun saveTheme(option: ThemeOption) { prefs.put("theme", option.name) }
 
 private val projectsDir: String by lazy {
     val os = System.getProperty("os.name")

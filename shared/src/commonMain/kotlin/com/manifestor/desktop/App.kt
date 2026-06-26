@@ -1,11 +1,14 @@
 package com.manifestor.desktop
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.manifestor.desktop.ui.screens.WelcomeScreen
+import com.manifestor.desktop.ui.theme.ThemeOption
 
 @Composable
 fun App(
@@ -15,11 +18,19 @@ fun App(
     onProjectNameChange: (String) -> Unit = {},
     onCreateProject: () -> Unit = {},
     errorMessage: String? = null,
+    themeOption: ThemeOption = ThemeOption.DARK,
+    onSettingsClick: () -> Unit = {},
     onBrowseClick: () -> Unit = {},
     onClearApk: () -> Unit = {},
 ) {
+    val isDark = when (themeOption) {
+        ThemeOption.DARK -> true
+        ThemeOption.LIGHT -> false
+        ThemeOption.SYSTEM -> isSystemInDarkTheme()
+    }
+
     MaterialTheme(
-        colorScheme = darkColorScheme(),
+        colorScheme = if (isDark) darkColorScheme() else lightColorScheme(),
     ) {
         WelcomeScreen(
             modifier = Modifier.fillMaxSize(),
@@ -29,6 +40,7 @@ fun App(
             onProjectNameChange = onProjectNameChange,
             onCreateProject = onCreateProject,
             errorMessage = errorMessage,
+            onSettingsClick = onSettingsClick,
             onBrowseClick = onBrowseClick,
             onClearApk = onClearApk,
         )
