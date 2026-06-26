@@ -47,7 +47,7 @@ fun main() = application {
                         try {
                             val files = data.readFiles()
                             files.firstOrNull { it.lowercase().endsWith(".apk") }?.let { path ->
-                                apkPath = path
+                                apkPath = normalizePath(path)
                                 projectName = ""
                                 errorMessage = null
                             }
@@ -104,7 +104,7 @@ fun main() = application {
                     dialog.filenameFilter = FilenameFilter { _, name -> name.lowercase().endsWith(".apk") }
                     dialog.isVisible = true
                     dialog.file?.let { fileName ->
-                        apkPath = File(dialog.directory, fileName).absolutePath
+                        apkPath = normalizePath(File(dialog.directory, fileName).absolutePath)
                         projectName = ""
                         errorMessage = null
                     }
@@ -145,6 +145,11 @@ private val projectsDir: String by lazy {
     "$base/user_projects"
 }
 
+private fun normalizePath(path: String): String {
+    val cleaned = path.removePrefix("file:").removePrefix("//")
+    return cleaned
+}
+
 private fun createProject(apkPath: String?, projectName: String): String? {
     if (apkPath == null) return null
 
@@ -153,7 +158,7 @@ private fun createProject(apkPath: String?, projectName: String): String? {
     if (!name.first().isLetter()) return "Project name must start with a letter"
 
     val projectDir = File(projectsDir, name)
-    val apkFile = File(apkPath)
+    val apkFile = File(normalizePath(apkPath))
 
     if (projectDir.exists()) return "Project '$name' already exists"
 
