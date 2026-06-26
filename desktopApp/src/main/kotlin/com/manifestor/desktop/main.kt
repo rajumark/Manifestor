@@ -18,6 +18,9 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.manifestor.desktop.ui.components.SettingsDialog
 import com.manifestor.desktop.ui.theme.ThemeOption
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.awt.FileDialog
 import java.io.File
 import java.io.FilenameFilter
@@ -26,7 +29,10 @@ import java.util.prefs.Preferences
 private val prefs = Preferences.userRoot().node("com/manifestor/desktop")
 
 fun main() = application {
-    var currentScreen by remember { mutableStateOf(Screen.WELCOME) }
+    var currentScreen by remember { mutableStateOf(if (ToolManager.isJadxReady()) Screen.WELCOME else Screen.TOOL_SETUP) }
+    var toolSetupState by remember { mutableStateOf(ToolSetupState.NOT_STARTED) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var toolSetupError by remember { mutableStateOf<String?>(null) }
     var projectInfo by remember { mutableStateOf<ProjectInfo?>(null) }
     var apkPath by remember { mutableStateOf<String?>(null) }
     val isDragging = remember { mutableStateOf(false) }
@@ -35,6 +41,7 @@ fun main() = application {
     var errorDialogMessage by remember { mutableStateOf<String?>(null) }
     var themeOption by remember { mutableStateOf(savedTheme()) }
     var showSettings by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -123,6 +130,28 @@ fun main() = application {
                 projectInfo = projectInfo,
                 onNavigateHome = { currentScreen = Screen.HOME },
                 onNavigateWelcome = { currentScreen = Screen.WELCOME },
+                toolSetupState = toolSetupState,
+                downloadProgress = downloadProgress,
+                toolSetupError = toolSetupError,
+                onToolDownload = {
+                    toolSetupState = ToolSetupState.DOWNLOADING
+                    downloadProgress = 0f
+                    toolSetupError = null
+                    scope.launch {
+                        try {
+                            ToolManager.downloadJadx { progress ->
+                                downloadProgress = progress
+                            }
+                            toolSetupState = ToolSetupState.EXTRACTING
+                            ToolManager.extractJadx { }
+                            toolSetupState = ToolSetupState.COMPLETED
+                            currentScreen = Screen.WELCOME
+                        } catch (e: Exception) {
+                            toolSetupState = ToolSetupState.ERROR
+                            toolSetupError = e.message ?: "Download failed"
+                        }
+                    }
+                },
             )
 
             if (showSettings) {

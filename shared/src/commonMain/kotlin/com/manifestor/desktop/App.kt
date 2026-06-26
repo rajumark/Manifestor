@@ -11,12 +11,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.manifestor.desktop.ui.screens.HomeScreen
+import com.manifestor.desktop.ui.screens.ToolSetupScreen
 import com.manifestor.desktop.ui.screens.WelcomeScreen
 import com.manifestor.desktop.ui.theme.ThemeOption
 
 @Composable
 fun App(
-    screen: Screen = Screen.WELCOME,
+    screen: Screen = Screen.TOOL_SETUP,
     apkPath: String? = null,
     isDragging: Boolean = false,
     projectName: String = "",
@@ -32,6 +33,10 @@ fun App(
     projectInfo: ProjectInfo? = null,
     onNavigateHome: () -> Unit = {},
     onNavigateWelcome: () -> Unit = {},
+    toolSetupState: ToolSetupState = ToolSetupState.NOT_STARTED,
+    downloadProgress: Float = 0f,
+    toolSetupError: String? = null,
+    onToolDownload: () -> Unit = {},
 ) {
     val isDark = when (themeOption) {
         ThemeOption.DARK -> true
@@ -43,6 +48,15 @@ fun App(
         colorScheme = if (isDark) darkColorScheme() else lightColorScheme(),
     ) {
         when (screen) {
+            Screen.TOOL_SETUP -> {
+                ToolSetupScreen(
+                    state = toolSetupState,
+                    progress = downloadProgress,
+                    errorMessage = toolSetupError,
+                    onDownload = onToolDownload,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             Screen.WELCOME -> {
                 WelcomeScreen(
                     modifier = Modifier.fillMaxSize(),

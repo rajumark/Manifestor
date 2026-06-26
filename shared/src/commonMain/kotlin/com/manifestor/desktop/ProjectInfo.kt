@@ -8,5 +8,13 @@ data class ProjectInfo(
 )
 
 enum class Screen {
-    WELCOME, HOME,
+    TOOL_SETUP, WELCOME, HOME,
+}
+
+enum class ToolSetupState {
+    NOT_STARTED,
+    DOWNLOADING,
+    EXTRACTING,
+    COMPLETED,
+    ERROR,
 }
