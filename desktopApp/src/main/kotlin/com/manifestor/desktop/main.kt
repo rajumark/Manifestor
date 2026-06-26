@@ -30,6 +30,7 @@ fun main() = application {
     val isDragging = remember { mutableStateOf(false) }
     var projectName by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
     var themeOption by remember { mutableStateOf(savedTheme()) }
     var showSettings by remember { mutableStateOf(false) }
 
@@ -87,9 +88,15 @@ fun main() = application {
                 onProjectNameChange = { projectName = it; errorMessage = null },
                 onCreateProject = {
                     val error = createProject(apkPath, projectName)
-                    if (error != null) errorMessage = error else projectName = ""
+                    if (error != null) {
+                        if (error.contains("\n")) errorDialogMessage = error else errorMessage = error
+                    } else {
+                        projectName = ""
+                    }
                 },
                 errorMessage = errorMessage,
+                errorDialogMessage = errorDialogMessage,
+                onDismissErrorDialog = { errorDialogMessage = null },
                 themeOption = themeOption,
                 onSettingsClick = { showSettings = true },
                 onBrowseClick = {
@@ -146,18 +153,23 @@ private fun createProject(apkPath: String?, projectName: String): String? {
     if (!name.first().isLetter()) return "Project name must start with a letter"
 
     val projectDir = File(projectsDir, name)
+    val apkFile = File(apkPath)
 
     if (projectDir.exists()) return "Project '$name' already exists"
 
-    projectDir.mkdirs()
+    if (!apkFile.exists()) return "APK file not found at:\n$apkPath"
 
-    val apkFile = File(apkPath)
+    if (!projectDir.mkdirs()) {
+        val parentOk = File(projectsDir).exists() || File(projectsDir).mkdirs()
+        if (!parentOk) return "Failed to create project folder.\nCheck write permission for:\n$projectsDir"
+    }
+
     val destFile = File(projectDir, apkFile.name)
     try {
         apkFile.copyTo(destFile, overwrite = false)
-    } catch (_: Exception) {
+    } catch (e: Exception) {
         projectDir.deleteRecursively()
-        return "Failed to copy APK file"
+        return "Failed to copy APK:\n${e.message ?: "unknown error"}"
     }
 
     val metadata = buildString {
