@@ -37,6 +37,8 @@ fun App(
     downloadProgress: Float = 0f,
     toolSetupError: String? = null,
     onToolDownload: () -> Unit = {},
+    projects: List<ProjectSummary> = emptyList(),
+    onProjectClick: (ProjectSummary) -> Unit = {},
 ) {
     val isDark = when (themeOption) {
         ThemeOption.DARK -> true
@@ -69,6 +71,8 @@ fun App(
                     onSettingsClick = onSettingsClick,
                     onBrowseClick = onBrowseClick,
                     onClearApk = onClearApk,
+                    projects = projects,
+                    onProjectClick = onProjectClick,
                 )
             }
             Screen.HOME -> {

@@ -42,6 +42,7 @@ fun main() = application {
     var themeOption by remember { mutableStateOf(savedTheme()) }
     var showSettings by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val projects = remember(currentScreen) { loadProjects() }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -152,6 +153,16 @@ fun main() = application {
                         }
                     }
                 },
+                projects = projects,
+                onProjectClick = { project ->
+                    projectInfo = ProjectInfo(
+                        projectName = project.projectName,
+                        apkFileName = project.apkFileName,
+                        apkFullPath = project.apkFullPath,
+                        createdAt = project.createdAt,
+                    )
+                    currentScreen = Screen.HOME
+                },
             )
 
             if (showSettings) {
@@ -230,6 +241,46 @@ private fun createProject(apkPath: String?, projectName: String): String? {
     File(projectDir, "project.json").writeText(metadata)
 
     return null
+}
+
+private fun loadProjects(): List<ProjectSummary> {
+    val dir = File(projectsDir)
+    if (!dir.exists()) return emptyList()
+    return dir.listFiles()?.filter { it.isDirectory }?.mapNotNull { projectDir ->
+        val jsonFile = File(projectDir, "project.json")
+        if (!jsonFile.exists()) return@mapNotNull null
+        try {
+            val json = jsonFile.readText()
+            val name = extractJsonString(json, "projectName") ?: return@mapNotNull null
+            val apkFileName = extractJsonString(json, "apkFileName") ?: ""
+            val apkFullPath = extractJsonString(json, "apkFullPath") ?: ""
+            val createdAt = extractJsonString(json, "createdAt") ?: ""
+            ProjectSummary(
+                projectName = name, apkFileName = apkFileName,
+                apkFullPath = apkFullPath, createdAt = createdAt,
+                createdAtDisplay = daysAgoText(createdAt),
+            )
+        } catch (_: Exception) { null }
+    }?.sortedByDescending { it.createdAt } ?: emptyList()
+}
+
+private fun extractJsonString(json: String, key: String): String? {
+    val regex = "\"$key\"\\s*:\\s*\"([^\"]*)\"".toRegex()
+    return regex.find(json)?.groupValues?.get(1)
+}
+
+private fun daysAgoText(createdAt: String): String {
+    return try {
+        val created = java.time.LocalDateTime.parse(createdAt)
+        val now = java.time.LocalDateTime.now()
+        val days = java.time.Duration.between(created, now).toDays()
+        when {
+            days < 0 -> "Just now"
+            days == 0L -> "Today"
+            days == 1L -> "1 day ago"
+            else -> "$days days ago"
+        }
+    } catch (_: Exception) { createdAt }
 }
 
 private class FileDropNodeElement(
