@@ -23,6 +23,8 @@ import java.io.FilenameFilter
 fun main() = application {
     var apkPath by remember { mutableStateOf<String?>(null) }
     val isDragging = remember { mutableStateOf(false) }
+    var projectName by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -38,6 +40,8 @@ fun main() = application {
                             val files = data.readFiles()
                             files.firstOrNull { it.lowercase().endsWith(".apk") }?.let { path ->
                                 apkPath = path
+                                projectName = ""
+                                errorMessage = null
                             }
                         } catch (_: Exception) {
                             // macOS may not have resolved file data yet
@@ -72,18 +76,63 @@ fun main() = application {
             App(
                 apkPath = apkPath,
                 isDragging = isDragging.value,
+                projectName = projectName,
+                onProjectNameChange = { projectName = it; errorMessage = null },
+                onCreateProject = {
+                    val error = createProject(apkPath, projectName)
+                    if (error != null) errorMessage = error else projectName = ""
+                },
+                errorMessage = errorMessage,
                 onBrowseClick = {
                     val dialog = FileDialog(window, "Select APK", FileDialog.LOAD)
                     dialog.filenameFilter = FilenameFilter { _, name -> name.lowercase().endsWith(".apk") }
                     dialog.isVisible = true
                     dialog.file?.let { fileName ->
                         apkPath = File(dialog.directory, fileName).absolutePath
+                        projectName = ""
+                        errorMessage = null
                     }
                 },
-                onClearApk = { apkPath = null },
+                onClearApk = { apkPath = null; projectName = ""; errorMessage = null },
             )
         }
     }
+}
+
+private fun createProject(apkPath: String?, projectName: String): String? {
+    if (apkPath == null) return null
+
+    val name = projectName.trim()
+    if (name.isEmpty()) return "Project name cannot be empty"
+    if (!name.first().isLetter()) return "Project name must start with a letter"
+
+    val projectsDir = File(System.getProperty("user.home"), "ManifestorProjects")
+    val projectDir = File(projectsDir, name)
+
+    if (projectDir.exists()) return "Project '$name' already exists"
+
+    projectDir.mkdirs()
+
+    val apkFile = File(apkPath)
+    val destFile = File(projectDir, apkFile.name)
+    try {
+        apkFile.copyTo(destFile, overwrite = false)
+    } catch (_: Exception) {
+        projectDir.deleteRecursively()
+        return "Failed to copy APK file"
+    }
+
+    val metadata = buildString {
+        appendLine("{")
+        appendLine("  \"projectName\": \"$name\",")
+        appendLine("  \"apkFileName\": \"${apkFile.name}\",")
+        appendLine("  \"apkFullPath\": \"${apkFile.absolutePath}\",")
+        appendLine("  \"createdAt\": \"${java.time.LocalDateTime.now()}\"")
+        appendLine("}")
+    }
+    File(projectDir, "project.json").writeText(metadata)
+
+    return null
 }
 
 private class FileDropNodeElement(

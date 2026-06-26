@@ -11,6 +11,10 @@ import com.manifestor.desktop.ui.screens.WelcomeScreen
 fun App(
     apkPath: String? = null,
     isDragging: Boolean = false,
+    projectName: String = "",
+    onProjectNameChange: (String) -> Unit = {},
+    onCreateProject: () -> Unit = {},
+    errorMessage: String? = null,
     onBrowseClick: () -> Unit = {},
     onClearApk: () -> Unit = {},
 ) {
@@ -21,6 +25,10 @@ fun App(
             modifier = Modifier.fillMaxSize(),
             apkPath = apkPath,
             isDragging = isDragging,
+            projectName = projectName,
+            onProjectNameChange = onProjectNameChange,
+            onCreateProject = onCreateProject,
+            errorMessage = errorMessage,
             onBrowseClick = onBrowseClick,
             onClearApk = onClearApk,
         )
