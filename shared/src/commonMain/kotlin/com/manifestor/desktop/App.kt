@@ -78,6 +78,8 @@ fun App(
                     onClearApk = onClearApk,
                     projects = projects,
                     onProjectClick = onProjectClick,
+                    showBackButton = projectInfo != null,
+                    onBackClick = onNavigateHome,
                 )
             }
             Screen.HOME -> {
@@ -90,6 +92,7 @@ fun App(
                         decompileStatusText = decompileStatusText,
                         onRetryDecompile = onRetryDecompile,
                         onSettingsClick = onSettingsClick,
+                        onTitleClick = onNavigateWelcome,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

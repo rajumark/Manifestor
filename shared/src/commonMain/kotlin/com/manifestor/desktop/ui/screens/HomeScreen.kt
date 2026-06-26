@@ -47,6 +47,7 @@ fun HomeScreen(
     decompileStatusText: String = "",
     onRetryDecompile: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onTitleClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -123,8 +124,9 @@ fun HomeScreen(
                         text = projectInfo.projectName,
                         style = MaterialTheme.typography.titleSmall,
                         color = scheme.onSurface,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.clickable { onTitleClick() },
                     )
+                    Spacer(Modifier.weight(1f))
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             painter = painterResource(AppIcons.settings),

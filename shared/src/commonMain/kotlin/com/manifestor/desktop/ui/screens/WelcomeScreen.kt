@@ -38,6 +38,8 @@ fun WelcomeScreen(
     onClearApk: () -> Unit = {},
     projects: List<ProjectSummary> = emptyList(),
     onProjectClick: (ProjectSummary) -> Unit = {},
+    showBackButton: Boolean = false,
+    onBackClick: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -193,6 +195,19 @@ fun WelcomeScreen(
                         }
                     }
                 }
+            }
+        }
+
+        if (showBackButton) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
+            ) {
+                Icon(
+                    painter = painterResource(AppIcons.arrowBack),
+                    contentDescription = "Back",
+                    tint = scheme.onSurfaceVariant,
+                )
             }
         }
 
