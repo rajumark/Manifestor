@@ -24,6 +24,8 @@ import kotlinx.coroutines.withContext
 import java.awt.FileDialog
 import java.io.File
 import java.io.FilenameFilter
+import java.time.Duration
+import java.time.Instant
 import java.util.prefs.Preferences
 
 private val prefs = Preferences.userRoot().node("com/manifestor/desktop")
@@ -42,22 +44,53 @@ fun main() = application {
     var themeOption by remember { mutableStateOf(savedTheme()) }
     var showSettings by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val projects = remember(currentScreen) { loadProjects() }
+    var projects by remember(currentScreen) { mutableStateOf(loadProjects()) }
     var isDecompiling by remember { mutableStateOf(false) }
     var decompileError by remember { mutableStateOf<String?>(null) }
     var decompileRetryTrigger by remember { mutableStateOf(0) }
     var decompileProgress by remember { mutableStateOf(0f) }
     var decompileStatusText by remember { mutableStateOf("") }
+    var overviewData by remember { mutableStateOf(ApkOverviewData()) }
+    var recentApks by remember { mutableStateOf(emptyList<RecentApk>()) }
     var sourceCodeEntries by remember { mutableStateOf<List<FileEntry>>(emptyList()) }
     var sourceCodeCurrentPath by remember { mutableStateOf("") }
     var sourceCodeSelectedFile by remember { mutableStateOf<String?>(null) }
     var sourceCodeFileContent by remember { mutableStateOf("") }
+    var sourceCodeSearchResults by remember { mutableStateOf<List<FileEntry>?>(null) }
+    var sourceCodeSearchQuery by remember { mutableStateOf("") }
 
     fun readSourceCodeFile(projectDir: String, relativePath: String): String {
         val file = File(File(projectDir, "jadx_result"), relativePath)
         return if (file.exists() && file.isFile) {
             try { file.readText() } catch (_: Exception) { "Unable to read file" }
         } else ""
+    }
+
+    fun searchSourceCodeFiles(projectDir: String, query: String) {
+        sourceCodeSearchQuery = query
+        if (query.isEmpty()) {
+            sourceCodeSearchResults = null
+            return
+        }
+        val baseDir = File(projectDir, "jadx_result")
+        if (!baseDir.exists()) {
+            sourceCodeSearchResults = emptyList()
+            return
+        }
+        val results = mutableListOf<FileEntry>()
+        baseDir.walkTopDown().forEach { file ->
+            if (file != baseDir && file.name.contains(query, ignoreCase = true)) {
+                val relativePath = file.relativeTo(baseDir).path
+                results.add(FileEntry(
+                    name = file.name,
+                    isDirectory = file.isDirectory,
+                    relativePath = relativePath,
+                ))
+            }
+        }
+        sourceCodeSearchResults = results.sortedWith(
+            compareByDescending<FileEntry> { it.isDirectory }.thenBy { it.name }
+        )
     }
 
     fun loadSourceCodeEntries(projectDir: String, relativePath: String) {
@@ -151,6 +184,7 @@ fun main() = application {
                     } else {
                         updateProjectJadxDone(info.projectName, true)
                         projectInfo = info.copy(jadxDone = true)
+                        overviewData = ApkOverviewParser.parse("$projectsDir/${info.projectName}")
                     }
                     isDecompiling = false
                 }
@@ -226,6 +260,7 @@ fun main() = application {
                 sourceCodeEntries = sourceCodeEntries,
                 sourceCodeCurrentPath = sourceCodeCurrentPath,
                 sourceCodeSelectedFile = sourceCodeSelectedFile,
+                sourceCodeSearchResults = sourceCodeSearchResults,
                 onSourceCodeNavigate = { path ->
                     val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
                     sourceCodeCurrentPath = path
@@ -275,8 +310,12 @@ fun main() = application {
                         clipboard.setContents(java.awt.datatransfer.StringSelection(content), null)
                     }
                 },
-                onSourceCodeSearchFile = { /* handled locally in SourceCodePage */ },
+                onSourceCodeSearchFile = { query ->
+                    val projectDir = projectInfo?.let { "${projectsDir}/${it.projectName}" } ?: return@App
+                    searchSourceCodeFiles(projectDir, query)
+                },
                 onSourceCodeSearchContent = { /* handled locally in SourceCodePage */ },
+                overviewData = overviewData,
                 projects = projects,
                 onProjectClick = { project ->
                     projectInfo = ProjectInfo(
@@ -286,7 +325,35 @@ fun main() = application {
                         createdAt = project.createdAt,
                         jadxDone = project.jadxDone,
                     )
+                    if (project.jadxDone) {
+                        overviewData = ApkOverviewParser.parse("$projectsDir/${project.projectName}")
+                    }
                     currentScreen = Screen.HOME
+                },
+                recentApks = recentApks,
+                onRecentApkClick = { path ->
+                    apkPath = normalizePath(path)
+                    projectName = ""
+                    errorMessage = null
+                },
+                onRecentApksRefresh = { recentApks = loadRecentApks() },
+                onProjectDelete = { project ->
+                    val projectDir = File(projectsDir, project.projectName)
+                    if (projectDir.exists()) projectDir.deleteRecursively()
+                    projects = loadProjects()
+                },
+                onProjectOpenFolder = { project ->
+                    val projectDir = File(projectsDir, project.projectName)
+                    if (projectDir.exists()) {
+                        java.awt.Desktop.getDesktop().open(projectDir)
+                    }
+                },
+                onProjectCopyPath = { project ->
+                    val clip = java.awt.Toolkit.getDefaultToolkit().systemClipboard
+                    clip.setContents(
+                        java.awt.datatransfer.StringSelection(File(projectsDir, project.projectName).absolutePath),
+                        null,
+                    )
                 },
             )
 
@@ -428,6 +495,40 @@ private fun updateProjectJadxDone(projectName: String, done: Boolean) {
         }
         jsonFile.writeText(updated)
     } catch (_: Exception) {}
+}
+
+private fun relativeTimeText(lastModified: Long): String {
+    val now = Instant.now()
+    val modified = Instant.ofEpochMilli(lastModified)
+    val duration = Duration.between(modified, now)
+    val minutes = duration.toMinutes()
+    val hours = duration.toHours()
+    val days = duration.toDays()
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> if (minutes == 1L) "1 minute ago" else "$minutes minutes ago"
+        hours < 24 -> if (hours == 1L) "1 hour ago" else "$hours hours ago"
+        days < 7 -> if (days == 1L) "1 day ago" else "$days days ago"
+        days < 30 -> if (days / 7 == 1L) "1 week ago" else "${days / 7} weeks ago"
+        days < 365 -> if (days / 30 == 1L) "1 month ago" else "${days / 30} months ago"
+        else -> if (days / 365 == 1L) "1 year ago" else "${days / 365} years ago"
+    }
+}
+
+private fun loadRecentApks(): List<RecentApk> {
+    val home = System.getProperty("user.home")
+    val downloadsPath = if (System.getProperty("os.name").startsWith("Windows"))
+        "${System.getenv("USERPROFILE")}\\Downloads"
+    else "$home/Downloads"
+    val dir = File(downloadsPath)
+    if (!dir.exists()) return emptyList()
+    return dir.listFiles()
+        ?.filter { it.isFile && it.name.lowercase().endsWith(".apk") }
+        ?.map {
+            RecentApk(it.absolutePath, it.name, it.lastModified(), relativeTimeText(it.lastModified()))
+        }
+        ?.sortedByDescending { it.lastModified }
+        ?: emptyList()
 }
 
 private class FileDropNodeElement(

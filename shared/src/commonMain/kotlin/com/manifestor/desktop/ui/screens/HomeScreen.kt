@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.manifestor.desktop.ApkOverviewData
 import com.manifestor.desktop.AppIcons
 import com.manifestor.desktop.FileEntry
 import com.manifestor.desktop.ProjectInfo
@@ -42,6 +43,7 @@ private val navItems = listOf(
 @Composable
 fun HomeScreen(
     projectInfo: ProjectInfo,
+    overviewData: ApkOverviewData = ApkOverviewData(),
     isDecompiling: Boolean = false,
     decompileError: String? = null,
     decompileProgress: Float = 0f,
@@ -52,6 +54,7 @@ fun HomeScreen(
     sourceCodeEntries: List<FileEntry> = emptyList(),
     sourceCodeCurrentPath: String = "",
     sourceCodeSelectedFile: String? = null,
+    sourceCodeSearchResults: List<FileEntry>? = null,
     sourceCodeFileContent: String = "",
     onSourceCodeNavigate: (String) -> Unit = {},
     onSourceCodeBack: () -> Unit = {},
@@ -193,13 +196,14 @@ fun HomeScreen(
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                         when (selectedPage) {
-                            SidebarPage.OVERVIEW -> OverviewPage(projectInfo = projectInfo)
+                            SidebarPage.OVERVIEW -> OverviewPage(projectInfo = projectInfo, overviewData = overviewData)
                             SidebarPage.MANIFEST -> ManifestPage()
                             SidebarPage.SOURCE_CODE -> SourceCodePage(
                                 entries = sourceCodeEntries,
                                 currentPath = sourceCodeCurrentPath,
                                 canGoBack = sourceCodeCurrentPath.isNotEmpty(),
                                 selectedFile = sourceCodeSelectedFile,
+                                searchResults = sourceCodeSearchResults,
                                 fileContent = sourceCodeFileContent,
                                 onNavigate = onSourceCodeNavigate,
                                 onBack = onSourceCodeBack,

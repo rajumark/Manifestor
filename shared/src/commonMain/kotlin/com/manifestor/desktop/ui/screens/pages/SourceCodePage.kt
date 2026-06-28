@@ -31,6 +31,7 @@ fun SourceCodePage(
     currentPath: String,
     canGoBack: Boolean,
     selectedFile: String?,
+    searchResults: List<FileEntry>? = null,
     fileContent: String,
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
@@ -48,7 +49,7 @@ fun SourceCodePage(
     var fileSearchQuery by remember { mutableStateOf("") }
     var contentSearchQuery by remember { mutableStateOf("") }
 
-    val filteredEntries = if (fileSearchQuery.isEmpty()) entries
+    val displayEntries = searchResults ?: if (fileSearchQuery.isEmpty()) entries
     else entries.filter { it.name.contains(fileSearchQuery, ignoreCase = true) }
 
     Row(modifier = modifier.fillMaxSize()) {
@@ -139,12 +140,13 @@ fun SourceCodePage(
                     modifier = Modifier.fillMaxSize()
                         .verticalScroll(scrollState),
                 ) {
-                    filteredEntries.forEach { entry ->
+                    displayEntries.forEach { entry ->
                         val isSelected = selectedFile == entry.relativePath
+                        val showPath = searchResults != null && entry.relativePath.contains("/")
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(28.dp)
+                                .defaultMinSize(minHeight = 28.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable {
                                     if (entry.isDirectory) onNavigate(entry.relativePath)
@@ -154,7 +156,7 @@ fun SourceCodePage(
                                     if (isSelected) scheme.primaryContainer.copy(alpha = 0.4f)
                                     else scheme.surface.copy(alpha = 0f)
                                 )
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = if (showPath) 4.dp else 0.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
@@ -167,12 +169,23 @@ fun SourceCodePage(
                                 tint = if (entry.isDirectory) scheme.tertiary else scheme.onSurfaceVariant,
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = entry.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurface,
-                                maxLines = 1,
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = entry.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurface,
+                                    maxLines = 1,
+                                )
+                                if (searchResults != null && entry.relativePath.contains("/")) {
+                                    Text(
+                                        text = entry.relativePath.substringBeforeLast("/"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
