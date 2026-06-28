@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,12 +16,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.manifestor.desktop.ApkOverviewData
 import com.manifestor.desktop.ProjectInfo
+import com.manifestor.desktop.ui.screens.SidebarPage
 import org.jetbrains.skia.Image
 
 @Composable
 fun OverviewPage(
     projectInfo: ProjectInfo,
     overviewData: ApkOverviewData = ApkOverviewData(),
+    onNavigateToPage: (SidebarPage) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -73,14 +76,38 @@ fun OverviewPage(
 
         SectionCard {
             SectionTitle("Manifest", scheme.primary)
-            ManifestCategoryRow("Permissions", overviewData.manifestCategories.permissions)
-            ManifestCategoryRow("Activities", overviewData.manifestCategories.activities)
-            ManifestCategoryRow("Services", overviewData.manifestCategories.services)
-            ManifestCategoryRow("Receivers", overviewData.manifestCategories.receivers)
-            ManifestCategoryRow("Providers", overviewData.manifestCategories.providers)
-            ManifestCategoryRow("Uses-feature", overviewData.manifestCategories.usesFeature.size)
-            ManifestCategoryRow("Queries", overviewData.manifestCategories.queries.size)
-            ManifestCategoryRow("Intent Filters", overviewData.manifestCategories.intentFilterSchemes.size)
+            val cats = listOf(
+                Triple("Permissions", overviewData.manifestCategories.permissions.size, SidebarPage.PERMISSIONS),
+                Triple("Activities", overviewData.manifestCategories.activities.size, SidebarPage.ACTIVITIES),
+                Triple("Services", overviewData.manifestCategories.services.size, SidebarPage.SERVICES),
+                Triple("Receivers", overviewData.manifestCategories.receivers.size, SidebarPage.RECEIVERS),
+                Triple("Providers", overviewData.manifestCategories.providers.size, SidebarPage.PROVIDERS),
+                Triple("Uses-feature", overviewData.manifestCategories.usesFeature.size, SidebarPage.USES_FEATURE),
+                Triple("Queries", overviewData.manifestCategories.queries.size, SidebarPage.QUERIES),
+                Triple("Intent Filters", overviewData.manifestCategories.intentFilterSchemes.size, SidebarPage.INTENT_FILTERS),
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                cats.forEach { (name, count, page) ->
+                    OutlinedButton(
+                        onClick = { onNavigateToPage(page) },
+                        modifier = Modifier.height(32.dp),
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = count.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(32.dp))
@@ -137,24 +164,3 @@ private fun KeyValue(key: String, value: String) {
     }
 }
 
-@Composable
-private fun ManifestCategoryRow(name: String, value: Any) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodySmall,
-            color = scheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            color = scheme.onBackground,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-}

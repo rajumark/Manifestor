@@ -40,20 +40,34 @@ object ApkOverviewParser {
         )
     }
 
+    private val dangerousPermissions = listOf(
+        "INSTALL_PACKAGES", "REQUEST_INSTALL_PACKAGES", "REQUEST_DELETE_PACKAGES",
+        "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE", "MANAGE_EXTERNAL_STORAGE",
+        "CAMERA", "RECORD_AUDIO", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION",
+        "READ_CONTACTS", "WRITE_CONTACTS", "READ_CALL_LOG", "WRITE_CALL_LOG",
+        "READ_SMS", "SEND_SMS", "RECEIVE_SMS",
+        "QUERY_ALL_PACKAGES", "SYSTEM_ALERT_WINDOW",
+        "BIND_ACCESSIBILITY_SERVICE",
+    )
+
     private fun parseManifestCategories(manifest: String): ManifestCategories {
-        val permissions = Regex("<uses-permission").findAll(manifest).count()
-        val activities = Regex("<activity[\\s>]").findAll(manifest).count()
-        val services = Regex("<service[\\s>]").findAll(manifest).count()
-        val receivers = Regex("<receiver[\\s>]").findAll(manifest).count()
-        val providers = Regex("<provider[\\s>]").findAll(manifest).count()
-        val metaDataTags = Regex("<meta-data").findAll(manifest).count()
-
         val attrNameRegex = Regex("""android:name="([^"]*)"""")
-        val usesFeature = Regex("<uses-feature[\\s\\S]*?</uses-feature>").findAll(manifest).map { block ->
-            attrNameRegex.find(block.value)?.groupValues?.getOrNull(1) ?: ""
-        }.filter { it.isNotEmpty() }.toList()
+        val exportedRegex = Regex("""android:exported="(true|false)"""")
 
-        val usesLibrary = Regex("<uses-library[\\s\\S]*?</uses-library>").findAll(manifest).map { block ->
+        val permissions = Regex("<uses-permission[^>]*android:name=\"([^\"]*)\"").findAll(manifest).map {
+            ManifestPermission(
+                name = it.groupValues[1],
+                isDangerous = dangerousPermissions.any { d -> it.groupValues[1].contains(d) },
+            )
+        }.toList()
+
+        val activities = parseComponents(manifest, "activity")
+        val services = parseComponents(manifest, "service")
+        val receivers = parseComponents(manifest, "receiver")
+
+        val providers = parseProviderBlocks(manifest)
+
+        val usesFeature = Regex("<uses-feature[\\s\\S]*?</uses-feature>").findAll(manifest).map { block ->
             attrNameRegex.find(block.value)?.groupValues?.getOrNull(1) ?: ""
         }.filter { it.isNotEmpty() }.toList()
 
@@ -73,12 +87,100 @@ object ApkOverviewParser {
             services = services,
             receivers = receivers,
             providers = providers,
-            metaDataTags = metaDataTags,
+            metaDataTags = emptyList(),
             usesFeature = usesFeature,
-            usesLibrary = usesLibrary,
+            usesLibrary = emptyList(),
             queries = queries,
             intentFilterSchemes = schemes,
         )
+    }
+
+    private fun parseComponents(manifest: String, tag: String): List<ManifestComponent> {
+        val pattern = Regex("<$tag[\\s\\S]*?/>|<$tag[\\s\\S]*?</$tag>")
+        return pattern.findAll(manifest).map { block ->
+            val text = block.value
+            parseComponentBlock(text)
+        }.toList()
+    }
+
+    private fun parseComponentBlock(text: String): ManifestComponent {
+        val aName = Regex("""android:name="([^"]*)"""").find(text)
+        val aExported = Regex("""android:exported="(true|false)"""").find(text)
+        val aTheme = Regex("""android:theme="([^"]*)"""").find(text)
+        val aProcess = Regex("""android:process="([^"]*)"""").find(text)
+        val aLaunchMode = Regex("""android:launchMode="([^"]*)"""").find(text)
+        val aOrientation = Regex("""android:screenOrientation="([^"]*)"""").find(text)
+        val aConfigChanges = Regex("""android:configChanges="([^"]*)"""").find(text)
+
+        val intentFilters = parseIntentFilters(text)
+
+        return ManifestComponent(
+            name = aName?.groupValues?.getOrNull(1) ?: "",
+            exported = aExported?.groupValues?.getOrNull(1)?.toBooleanStrictOrNull(),
+            theme = aTheme?.groupValues?.getOrNull(1) ?: "",
+            process = aProcess?.groupValues?.getOrNull(1) ?: "",
+            launchMode = aLaunchMode?.groupValues?.getOrNull(1) ?: "",
+            orientation = aOrientation?.groupValues?.getOrNull(1) ?: "",
+            configChanges = aConfigChanges?.groupValues?.getOrNull(1) ?: "",
+            intentFilters = intentFilters,
+        )
+    }
+
+    private fun parseIntentFilters(componentText: String): List<IntentFilter> {
+        val ifPattern = Regex("<intent-filter[\\s\\S]*?</intent-filter>")
+        return ifPattern.findAll(componentText).map { ifMatch ->
+            val ifText = ifMatch.value
+            val autoVerify = Regex("""android:autoVerify="true"""").containsMatchIn(ifText)
+
+            val actions = Regex("<action[\\s\\S]*?android:name=\"([^\"]*)\"").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            val categories = Regex("<category[\\s\\S]*?android:name=\"([^\"]*)\"").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            val dataSchemes = Regex("""android:scheme="([^"]*)"""").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            val dataHosts = Regex("""android:host="([^"]*)"""").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            val dataPaths = Regex("""android:path(?:Pattern)?="([^"]*)"""").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            val dataMimeTypes = Regex("""android:mimeType="([^"]*)"""").findAll(ifText).map {
+                it.groupValues[1]
+            }.toList()
+
+            IntentFilter(
+                autoVerify = autoVerify,
+                actions = actions,
+                categories = categories,
+                dataSchemes = dataSchemes,
+                dataHosts = dataHosts,
+                dataPaths = dataPaths,
+                dataMimeTypes = dataMimeTypes,
+            )
+        }.toList()
+    }
+
+    private fun parseProviderBlocks(manifest: String): List<ManifestProvider> {
+        val pattern = Regex("<provider[\\s\\S]*?/>|<provider[\\s\\S]*?</provider>")
+        return pattern.findAll(manifest).map { block ->
+            val text = block.value
+            ManifestProvider(
+                name = Regex("""android:name="([^"]*)"""").find(text)?.groupValues?.getOrNull(1) ?: "",
+                authorities = Regex("""android:authorities="([^"]*)"""").find(text)?.groupValues?.getOrNull(1) ?: "",
+                exported = Regex("""android:exported="(true|false)"""").find(text)?.groupValues?.getOrNull(1)?.toBooleanStrictOrNull(),
+                readPermission = Regex("""android:readPermission="([^"]*)"""").find(text)?.groupValues?.getOrNull(1) ?: "",
+                writePermission = Regex("""android:writePermission="([^"]*)"""").find(text)?.groupValues?.getOrNull(1) ?: "",
+                grantUriPermissions = Regex("""android:grantUriPermissions="(true|false)"""").find(text)?.groupValues?.getOrNull(1)?.toBooleanStrictOrNull(),
+            )
+        }.toList()
     }
 
     private fun findBuildConfigValue(sourcesDir: File, field: String): String? {
@@ -120,13 +222,11 @@ object ApkOverviewParser {
 
         val densities = listOf("xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "mdpi")
 
-        // 1. Try direct PNG in density folders
         for (density in densities) {
             val iconFile = File(resDir, "mipmap-$density/${iconName}.png")
             if (iconFile.exists()) return iconFile.readBytes()
         }
 
-        // 2. Try legacy ic_launcher.png fallback before adaptive XML
         if (iconName != "ic_launcher") {
             for (density in densities) {
                 val fallback = File(resDir, "mipmap-$density/ic_launcher.png")
@@ -134,15 +234,12 @@ object ApkOverviewParser {
             }
         }
 
-        // 3. Try adaptive icon XML in mipmap-anydpi
         val anydpiXml = File(resDir, "mipmap-anydpi/$iconName.xml")
         if (anydpiXml.exists()) {
             val xmlContent = anydpiXml.readText()
-            // Search for all drawable references with their type
             val drawableRefs = Regex("""android:drawable="@(mipmap|drawable)/([^"]*)"""")
                 .findAll(xmlContent).map { it.groupValues[2] }.toList()
 
-            // try foreground first (index 1), then background (index 0), then monochrome (index 2)
             val order = listOf(1, 0, 2)
             for (idx in order) {
                 if (idx < drawableRefs.size) {

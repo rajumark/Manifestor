@@ -20,13 +20,11 @@ import com.manifestor.desktop.ApkOverviewData
 import com.manifestor.desktop.AppIcons
 import com.manifestor.desktop.FileEntry
 import com.manifestor.desktop.ProjectInfo
-import com.manifestor.desktop.ui.screens.pages.ManifestPage
-import com.manifestor.desktop.ui.screens.pages.OverviewPage
-import com.manifestor.desktop.ui.screens.pages.SourceCodePage
+import com.manifestor.desktop.ui.screens.pages.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-enum class SidebarPage { OVERVIEW, MANIFEST, SOURCE_CODE }
+enum class SidebarPage { OVERVIEW, PERMISSIONS, ACTIVITIES, SERVICES, RECEIVERS, PROVIDERS, USES_FEATURE, QUERIES, INTENT_FILTERS, SOURCE_CODE }
 
 private data class NavItem(
     val page: SidebarPage,
@@ -36,7 +34,14 @@ private data class NavItem(
 
 private val navItems = listOf(
     NavItem(SidebarPage.OVERVIEW, AppIcons.overview, "Overview"),
-    NavItem(SidebarPage.MANIFEST, AppIcons.manifest, "Manifest"),
+    NavItem(SidebarPage.PERMISSIONS, AppIcons.permissions, "Permissions"),
+    NavItem(SidebarPage.ACTIVITIES, AppIcons.activities, "Activities"),
+    NavItem(SidebarPage.SERVICES, AppIcons.services, "Services"),
+    NavItem(SidebarPage.RECEIVERS, AppIcons.receivers, "Receivers"),
+    NavItem(SidebarPage.PROVIDERS, AppIcons.providers, "Providers"),
+    NavItem(SidebarPage.USES_FEATURE, AppIcons.usesFeature, "Uses-feature"),
+    NavItem(SidebarPage.QUERIES, AppIcons.queries, "Queries"),
+    NavItem(SidebarPage.INTENT_FILTERS, AppIcons.intentFilters, "Intent Filters"),
     NavItem(SidebarPage.SOURCE_CODE, AppIcons.source, "Source Code"),
 )
 
@@ -196,8 +201,19 @@ fun HomeScreen(
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                         when (selectedPage) {
-                            SidebarPage.OVERVIEW -> OverviewPage(projectInfo = projectInfo, overviewData = overviewData)
-                            SidebarPage.MANIFEST -> ManifestPage()
+                            SidebarPage.OVERVIEW -> OverviewPage(
+                                projectInfo = projectInfo,
+                                overviewData = overviewData,
+                                onNavigateToPage = { selectedPage = it },
+                            )
+                            SidebarPage.PERMISSIONS -> PermissionsPage(overviewData = overviewData)
+                            SidebarPage.ACTIVITIES -> ActivitiesPage(overviewData = overviewData)
+                            SidebarPage.SERVICES -> ServicesPage(overviewData = overviewData)
+                            SidebarPage.RECEIVERS -> ReceiversPage(overviewData = overviewData)
+                            SidebarPage.PROVIDERS -> ProvidersPage(overviewData = overviewData)
+                            SidebarPage.USES_FEATURE -> UsesFeaturePage(overviewData = overviewData)
+                            SidebarPage.QUERIES -> QueriesPage(overviewData = overviewData)
+                            SidebarPage.INTENT_FILTERS -> IntentFiltersPage(overviewData = overviewData)
                             SidebarPage.SOURCE_CODE -> SourceCodePage(
                                 entries = sourceCodeEntries,
                                 currentPath = sourceCodeCurrentPath,

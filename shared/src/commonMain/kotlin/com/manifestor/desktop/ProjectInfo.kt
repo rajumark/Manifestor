@@ -47,16 +47,51 @@ data class AppIdentity(
 )
 
 data class ManifestCategories(
-    val permissions: Int = 0,
-    val activities: Int = 0,
-    val services: Int = 0,
-    val receivers: Int = 0,
-    val providers: Int = 0,
-    val metaDataTags: Int = 0,
+    val permissions: List<ManifestPermission> = emptyList(),
+    val activities: List<ManifestComponent> = emptyList(),
+    val services: List<ManifestComponent> = emptyList(),
+    val receivers: List<ManifestComponent> = emptyList(),
+    val providers: List<ManifestProvider> = emptyList(),
+    val metaDataTags: List<String> = emptyList(),
     val usesFeature: List<String> = emptyList(),
     val usesLibrary: List<String> = emptyList(),
     val queries: List<String> = emptyList(),
     val intentFilterSchemes: List<String> = emptyList(),
+)
+
+data class ManifestPermission(
+    val name: String,
+    val isDangerous: Boolean,
+)
+
+data class ManifestComponent(
+    val name: String,
+    val exported: Boolean? = null,
+    val theme: String = "",
+    val process: String = "",
+    val launchMode: String = "",
+    val orientation: String = "",
+    val configChanges: String = "",
+    val intentFilters: List<IntentFilter> = emptyList(),
+)
+
+data class ManifestProvider(
+    val name: String,
+    val authorities: String = "",
+    val exported: Boolean? = null,
+    val readPermission: String = "",
+    val writePermission: String = "",
+    val grantUriPermissions: Boolean? = null,
+)
+
+data class IntentFilter(
+    val autoVerify: Boolean = false,
+    val actions: List<String> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val dataSchemes: List<String> = emptyList(),
+    val dataHosts: List<String> = emptyList(),
+    val dataPaths: List<String> = emptyList(),
+    val dataMimeTypes: List<String> = emptyList(),
 )
 
 enum class Screen {
